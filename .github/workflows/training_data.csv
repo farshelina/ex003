@@ -5,6 +5,7 @@ import numpy as np
 data = {
     'feature1': np.random.rand(100),
     'feature2': np.random.randint(1,10,100),
-    'target': np.random.rand(100) * 100
+    'target': np.random.rand(100) * 100,
+    'feature3': np.random.randint(1,10,100)
 }
 pd.DataFrame(data).to_csv('training_data.csv', index=False)
