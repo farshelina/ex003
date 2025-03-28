@@ -1,0 +1,50 @@
+name: CI/CD Pipeline
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - run: pip install -r requirements.txt
+
+      - name: Check for data changes
+        id: check_changes
+        run: |
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep 'training_data.csv'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Train Model
+        if: steps.check_changes.outputs.changed == 'true'
+        run: python train_model.py
+
+      - name: Push to Release Branch
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git checkout release
+          git add linear_model.txt
+          git commit -m "Auto-update model"
+          git push origin release
+
+      - name: Create Release
+        if: steps.check_changes.outputs.changed == 'true'
+        uses: actions/create-release@v1
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Release v${{ github.run_number }}
+          body: "Automated model update"
+          token: ${{ secrets.GITHUB_TOKEN }}
